@@ -1,0 +1,15 @@
+Garbage Rummy multiplayer update
+
+- Wild 2s added to existing runs: choose HIGHER END or LOWER END when both ends are legal.
+- Mirror panorama horizontally to correct reversed 'GAME ROOM' writing.
+- Hand 7 explicitly says NO DISCARD and the host rejects discard actions in hand 7.
+- Every hand enters a READY phase after dealing. Opening discard remains hidden until all human players press READY. Bots automatically ready.
+- Host sends revision-numbered game snapshots after each action, including discard and turn changes; clients ignore older snapshots.
+- Existing voice chat and online room infrastructure retained.
+
+Upload the extracted files to the GitHub repository root and redeploy Render. Host should remain connected while friends play. Multiplayer/voice requires live two-device testing.
+
+- Every READY panel displays that hand’s meld requirements directly above the READY button.
+
+Hand 7: ordinary discards allowed; final-card discard rejected. Discard button restored.
+Voice privacy: independent speaking/listening settings, server-calculated mutual friendship permissions, opt-in microphone, saved device preferences. Replace voice.js and server.js together. Live WebRTC testing required.
