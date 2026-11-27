@@ -14,11 +14,23 @@ async function social(req,res){
  let raw='';for await(const chunk of req){raw+=chunk;if(raw.length>8192)return reply(413,{})}
  const d=JSON.parse(raw), token=d.token;
  if(typeof token!=='string'||!/^[a-f0-9]{64}$/.test(token))return reply(400,{error:'Invalid identity'});
+ let account=null;
+ if(d.accessToken){
+ const base='https://yyqsuopqndafiblicngm.supabase.co';
+ const headers={apikey:'sb_publishable_M_PmLfJsieuM1l-dOapWLQ_nn0oogmT',Authorization:'Bearer '+d.accessToken};
+ const u=await fetch(base+'/auth/v1/user',{headers});if(!u.ok)return reply(401,{error:'Please sign in again.'});
+ const user=await u.json();
+ const r=await fetch(base+'/rest/v1/profiles?id=eq.'+encodeURIComponent(user.id)+'&select=username,display_name',{headers});
+ if(!r.ok)return reply(403,{error:'Could not read your account profile.'});
+ const rows=await r.json();account={id:user.id,...rows[0]};
+ }
  const id=crypto.createHash('sha256').update(token).digest('hex');let p=profiles.get(id);
  if(!p){if(d.action!=='presence')return reply(403,{});p={id,name:'Player',friends:[],requests:[]};profiles.set(id,p);save()}
- if(d.action==='presence'){const name=String(d.name||'').trim().slice(0,24);if(name&&name!==p.name){p.name=name;save()}sessions.set(id,Date.now())}
- const code=q=>q.id.slice(0,12).toUpperCase();
- const matches=d.action==='requestCode'?[...profiles.values()].filter(q=>code(q)===String(d.target||'').trim().toUpperCase().replace(/-/g,'')):[];
+ if(p.accountId&&p.accountId!==account?.id)return reply(401,{error:'Sign in to your linked account.'});
+ if(account){if([...profiles.values()].some(q=>q!==p&&q.accountId===account.id))return reply(409,{error:'This account is linked to another browser identity.'});p.accountId=account.id;p.username=account.username||null;save()}
+ if(d.action==='presence'){const name=String(account?.display_name||d.name||'').trim().slice(0,24);if(name&&name!==p.name){p.name=name;save()}sessions.set(id,Date.now())}
+ const code=q=>q.username||q.id.slice(0,12).toUpperCase();
+ const matches=d.action==='requestCode'?[...profiles.values()].filter(q=>code(q).toLowerCase()===String(d.target||'').trim().toLowerCase()):[];
  const other=d.action==='requestCode'?(matches.length===1?matches[0]:null):profiles.get(d.target);
  if(d.action==='requestCode'&&(!other||other===p))return reply(400,{error:'Friend code not found or is your own code.'});
  if(other&&other!==p){if(['request','requestCode'].includes(d.action)&&!p.friends.includes(other.id)&&!other.requests.includes(id)){other.requests.push(id);save()}
